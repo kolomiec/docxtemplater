@@ -14,7 +14,7 @@ root.DocxGen = class DocxGen
 		if not @localImageCreator?
 			@localImageCreator= (arg,callback) ->
 				#This is the image of an arrow, you can replace this function by whatever you want to generate an image
-				result=JSZipBase64.decode("iVBORw0KGgoAAAANSUhEUgAAABcAAAAXCAIAAABvSEP3AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACXSURBVDhPtY7BDYAwDAMZhCf7b8YMxeCoatOQJhWc/KGxT2zlCyaWcz8Y+X7Bs1TFVJSwIHIYyFkQufWIRVX9cNJyW1QpEo4rixaEe7JuQagAUctb7ZFYFh5MVJPBe84CVBnB42//YsZRgKjFDBVg3cI9WbRwXLktQJX8cNIiFhM1ZuTWk7PIYSBhkVcLzwIiCjCxhCjlAkBqYnqFoQQ2AAAAAElFTkSuQmCC")
+				result=JSZip.base64.decode("iVBORw0KGgoAAAANSUhEUgAAABcAAAAXCAIAAABvSEP3AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACXSURBVDhPtY7BDYAwDAMZhCf7b8YMxeCoatOQJhWc/KGxT2zlCyaWcz8Y+X7Bs1TFVJSwIHIYyFkQufWIRVX9cNJyW1QpEo4rixaEe7JuQagAUctb7ZFYFh5MVJPBe84CVBnB42//YsZRgKjFDBVg3cI9WbRwXLktQJX8cNIiFhM1ZuTWk7PIYSBhkVcLzwIiCjCxhCjlAkBqYnqFoQQ2AAAAAElFTkSuQmCC")
 				callback(result)
 		@templatedFiles=["word/document.xml","word/footer1.xml","word/footer2.xml","word/footer3.xml","word/header1.xml","word/header2.xml","word/header3.xml"]
 		@filesProcessed=0  # This is the number of files that were processed, When all files are processed and all qrcodes are decoded, the finished Callback is called
@@ -33,20 +33,24 @@ root.DocxGen = class DocxGen
 		if @qrCodeWaitingFor.length==0 and @filesProcessed== @templatedFiles.length ## When all files are processed and all qrCodes are processed too, the finished callback can be called
 			@ready=true
 			@finishedCallback()
+	setFileData: (filePath,data) ->
+		console.log 'setting data for '+filePath+' //'+data
+		@zip.remove(filePath)
+		@zip.file(filePath,data)
 	logUndefined: (tag,scope)->
 		console.log("undefinedTag:"+tag)
 	load: (content)->
 		@zip = new JSZip content
 		@loadImageRels() #Loads the image Relationships that can be found in "word/_rels/document.xml.rels"
 	loadImageRels: () ->
-		content= DocUtils.decode_utf8 @zip.files["word/_rels/document.xml.rels"].data
+		content= DocUtils.decode_utf8 @zip.files["word/_rels/document.xml.rels"].asText()
 		@xmlDoc= DocUtils.Str2xml content
 		RidArray = ((parseInt tag.getAttribute("Id").substr(3)) for tag in @xmlDoc.getElementsByTagName('Relationship')) #Get all Rids
 		@maxRid=RidArray.max()
 		@imageRels=[]
 		this
 	addExtensionRels: (contentType,extension) -> #Add an extension type in the [Content_Types.xml], is used if for example you want word to be able to read png files (for every extension you add you need a contentType)
-		content = DocUtils.decode_utf8 @zip.files["[Content_Types].xml"].data
+		content = DocUtils.decode_utf8 @zip.files["[Content_Types].xml"].asText()
 		xmlDoc= DocUtils.Str2xml content
 		addTag= true
 		defaultTags=xmlDoc.getElementsByTagName('Default')
@@ -59,7 +63,8 @@ root.DocxGen = class DocxGen
 			newTag.setAttribute('ContentType',contentType)
 			newTag.setAttribute('Extension',extension)
 			types.appendChild newTag
-			@zip.files["[Content_Types].xml"].data= DocUtils.encode_utf8 DocUtils.xml2Str xmlDoc
+			this.setFileData("[Content_Types].xml",DocUtils.encode_utf8 DocUtils.xml2Str xmlDoc)
+
 	addImageRels: (imageName,imageData) -> #Adding an image and returns it's Rid
 		if @zip.files["word/media/#{imageName}"]?
 			throw 'file already exists'
@@ -74,7 +79,7 @@ root.DocxGen = class DocxGen
 				compression: null
 				date: new Date()
 				dir: false
-		@zip.file file.name,file.data,file.options
+		@zip.file file.name,imageData,file.options
 		extension= imageName.replace(/[^.]+\.([^.]+)/,'$1')
 		@addExtensionRels("image/#{extension}",extension)
 		relationships= @xmlDoc.getElementsByTagName("Relationships")[0]
@@ -84,7 +89,7 @@ root.DocxGen = class DocxGen
 		newTag.setAttribute('Type','http://schemas.openxmlformats.org/officeDocument/2006/relationships/image')
 		newTag.setAttribute('Target',"media/#{imageName}")
 		relationships.appendChild newTag
-		@zip.files["word/_rels/document.xml.rels"].data= DocUtils.encode_utf8 DocUtils.xml2Str @xmlDoc
+		this.setFileData("word/_rels/document.xml.rels",DocUtils.encode_utf8 DocUtils.xml2Str @xmlDoc)
 		@maxRid
 	getImageByRid:(rId)-> #This is to get an image by it's rId (returns null if no img was found)
 		relationships= @xmlDoc.getElementsByTagName('Relationship')
@@ -108,14 +113,14 @@ root.DocxGen = class DocxGen
 				imageList.push {"path":index,files:@zip.files[index]}
 		imageList
 	setImage: (path,data) ->
-		@zip.files[path].data= data
+		this.setFileData(path,data)
 	applyTemplateVars:(@templateVars=@templateVars,qrCodeCallback=null)->
 		#Loop inside all templatedFiles (basically xml files with content). Sometimes they dont't exist (footer.xml for example)
 		for fileName in @templatedFiles when !@zip.files[fileName]?
 			@filesProcessed++ #count  files that don't exist as processed
 		for fileName in @templatedFiles when @zip.files[fileName]?
-			currentFile= new DocXTemplater(@zip.files[fileName].data,this,@templateVars,@intelligentTagging,[],{},0,qrCodeCallback,@localImageCreator)
-			@zip.files[fileName].data= currentFile.applyTemplateVars().content
+			currentFile= new DocXTemplater(@zip.files[fileName].asText(),this,@templateVars,@intelligentTagging,[],{},0,qrCodeCallback,@localImageCreator)
+			this.setFileData(fileName,currentFile.applyTemplateVars().content)
 			@filesProcessed++
 		#When all files have been processed, check if the document is ready
 		@testReady()
@@ -134,7 +139,7 @@ root.DocxGen = class DocxGen
 	getTemplateVars:()->
 		usedTemplateVars=[]
 		for fileName in @templatedFiles when @zip.files[fileName]?
-			currentFile= new DocXTemplater(@zip.files[fileName].data,this,@templateVars,@intelligentTagging)
+			currentFile= new DocXTemplater(@zip.files[fileName].asText(),this,@templateVars,@intelligentTagging)
 			usedTemplateV= currentFile.applyTemplateVars().usedTemplateVars
 			#test if usedTemplateV!={}
 			n=0
@@ -162,11 +167,11 @@ root.DocxGen = class DocxGen
 		zip = new JSZip()
 		for index of @zip.files
 			file= @zip.files[index]
-			zip.file file.name,file.data,file.options
+			zip.file file.name,file.asText(),file.options
 		@zip=zip
 	getFullText:(path="word/document.xml",data="") ->
 		if data==""
-			currentFile= new DocXTemplater(@zip.files[path].data,this,@templateVars,@intelligentTagging)
+			currentFile= new DocXTemplater(@zip.files[path].asText(),this,@templateVars,@intelligentTagging)
 		else
 			currentFile= new DocXTemplater(data,this,@templateVars,@intelligentTagging)
 		currentFile.getFullText()
@@ -353,8 +358,11 @@ DocUtils.encode_utf8 = (s)->
 	unescape(encodeURIComponent(s))
 
 DocUtils.decode_utf8= (s) ->
-	decodeURIComponent(escape(s)).replace(new RegExp(String.fromCharCode(160),"g")," ") #replace Ascii 160 space by the normal space, Ascii 32
-
+	try
+		a=decodeURIComponent(escape(s)).replace(new RegExp(String.fromCharCode(160),"g")," ") #replace Ascii 160 space by the normal space, Ascii 32
+	catch error
+		debugger
+	return a
 DocUtils.base64encode= (b) ->
     btoa(unescape(encodeURIComponent(b)))
 
@@ -423,17 +431,17 @@ ImgReplacer = class ImgReplacer
 
 								imgName= ("Copie_"+@xmlTemplater.imageId+".png").replace(/\x20/,"")
 								@xmlTemplater.DocxGen.qrCodeNumCallBack++
-								
+
 								@xmlTemplater.DocxGen.qrCodeCallBack(@xmlTemplater.DocxGen.qrCodeNumCallBack,true)
 
 								newId= @xmlTemplater.DocxGen.addImageRels(imgName,"")
 								@xmlTemplater.imageId++
-								@xmlTemplater.DocxGen.setImage("word/media/#{imgName}",oldFile.data)
+								@xmlTemplater.DocxGen.setImage("word/media/#{imgName}",oldFile.asText())
 								# tag.setAttribute('id',@xmlTemplater.imageId)
 
 
 								if env=='browser'
-									qr[u]= new DocxQrCode(oldFile.data,@xmlTemplater,imgName,@xmlTemplater.DocxGen.qrCodeNumCallBack)
+									qr[u]= new DocxQrCode(oldFile.asText(),@xmlTemplater,imgName,@xmlTemplater.DocxGen.qrCodeNumCallBack)
 
 								tag.setAttribute('name',"#{imgName}")
 								tagrId.setAttribute('r:embed',"rId#{newId}")
@@ -452,17 +460,17 @@ ImgReplacer = class ImgReplacer
 								if env=='browser'
 									qr[u].decode(callback)
 								else
-									if /\.png$/.test(oldFile.name) 
+									if /\.png$/.test(oldFile.name)
 										do (imgName) =>
 											console.log(oldFile.name)
-											base64= JSZipBase64.encode oldFile.data
-											binaryData = new Buffer(base64, 'base64') 			
+											base64= JSZip.base64.encode oldFile.asText()
+											binaryData = new Buffer(base64, 'base64')
 											png= new PNG(binaryData)
 											finished= (a) =>
 												try
 													png.decoded= a
 													qr[u]= new DocxQrCode(png,@xmlTemplater,imgName,@xmlTemplater.DocxGen.qrCodeNumCallBack)
-													qr[u].decode(callback)											
+													qr[u].decode(callback)
 												catch e
 													console.log(e)
 													@xmlTemplater.DocxGen.qrCodeCallBack(@xmlTemplater.DocxGen.qrCodeNumCallBack,false)
@@ -473,7 +481,7 @@ ImgReplacer = class ImgReplacer
 
 
 			else if @xmlTemplater.currentScope["img"]? then if @xmlTemplater.currentScope["img"][u]?
-				
+
 				imgName= @xmlTemplater.currentScope["img"][u].name
 				imgData= @xmlTemplater.currentScope["img"][u].data
 				throw 'DocxGen not defined' unless @xmlTemplater.DocxGen?
@@ -502,13 +510,14 @@ ImgReplacer = class ImgReplacer
 						@xmlTemplater.content=@xmlTemplater.content.replace(match[0], DocUtils.xml2Str imageTag)
 
 root.ImgReplacer=ImgReplacer
+
 root= global ? window
 env= if global? then 'node' else 'browser'
 
 DocxQrCode = class DocxQrCode
 	constructor:(imageData, @xmlTemplater,@imgName="",@num,@callback)->
 		@data=imageData
-		@base64Data=JSZipBase64.encode(@data)
+		@base64Data=JSZip.base64.encode(@data)
 		@ready=false
 		@result=null
 	decode:(@callback) ->

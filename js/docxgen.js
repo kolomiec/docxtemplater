@@ -35,7 +35,7 @@ Created by Edgar HIPP
       if (this.localImageCreator == null) {
         this.localImageCreator = function(arg, callback) {
           var result;
-          result = JSZipBase64.decode("iVBORw0KGgoAAAANSUhEUgAAABcAAAAXCAIAAABvSEP3AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACXSURBVDhPtY7BDYAwDAMZhCf7b8YMxeCoatOQJhWc/KGxT2zlCyaWcz8Y+X7Bs1TFVJSwIHIYyFkQufWIRVX9cNJyW1QpEo4rixaEe7JuQagAUctb7ZFYFh5MVJPBe84CVBnB42//YsZRgKjFDBVg3cI9WbRwXLktQJX8cNIiFhM1ZuTWk7PIYSBhkVcLzwIiCjCxhCjlAkBqYnqFoQQ2AAAAAElFTkSuQmCC");
+          result = JSZip.base64.decode("iVBORw0KGgoAAAANSUhEUgAAABcAAAAXCAIAAABvSEP3AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACXSURBVDhPtY7BDYAwDAMZhCf7b8YMxeCoatOQJhWc/KGxT2zlCyaWcz8Y+X7Bs1TFVJSwIHIYyFkQufWIRVX9cNJyW1QpEo4rixaEe7JuQagAUctb7ZFYFh5MVJPBe84CVBnB42//YsZRgKjFDBVg3cI9WbRwXLktQJX8cNIiFhM1ZuTWk7PIYSBhkVcLzwIiCjCxhCjlAkBqYnqFoQQ2AAAAAElFTkSuQmCC");
           return callback(result);
         };
       }
@@ -70,6 +70,12 @@ Created by Edgar HIPP
       }
     };
 
+    DocxGen.prototype.setFileData = function(filePath, data) {
+      console.log('setting data for ' + filePath + ' //' + data);
+      this.zip.remove(filePath);
+      return this.zip.file(filePath, data);
+    };
+
     DocxGen.prototype.logUndefined = function(tag, scope) {
       return console.log("undefinedTag:" + tag);
     };
@@ -81,7 +87,7 @@ Created by Edgar HIPP
 
     DocxGen.prototype.loadImageRels = function() {
       var RidArray, content, tag;
-      content = DocUtils.decode_utf8(this.zip.files["word/_rels/document.xml.rels"].data);
+      content = DocUtils.decode_utf8(this.zip.files["word/_rels/document.xml.rels"].asText());
       this.xmlDoc = DocUtils.Str2xml(content);
       RidArray = (function() {
         var _i, _len, _ref, _results;
@@ -100,7 +106,7 @@ Created by Edgar HIPP
 
     DocxGen.prototype.addExtensionRels = function(contentType, extension) {
       var addTag, content, defaultTags, newTag, tag, types, xmlDoc, _i, _len;
-      content = DocUtils.decode_utf8(this.zip.files["[Content_Types].xml"].data);
+      content = DocUtils.decode_utf8(this.zip.files["[Content_Types].xml"].asText());
       xmlDoc = DocUtils.Str2xml(content);
       addTag = true;
       defaultTags = xmlDoc.getElementsByTagName('Default');
@@ -117,7 +123,7 @@ Created by Edgar HIPP
         newTag.setAttribute('ContentType', contentType);
         newTag.setAttribute('Extension', extension);
         types.appendChild(newTag);
-        return this.zip.files["[Content_Types].xml"].data = DocUtils.encode_utf8(DocUtils.xml2Str(xmlDoc));
+        return this.setFileData("[Content_Types].xml", DocUtils.encode_utf8(DocUtils.xml2Str(xmlDoc)));
       }
     };
 
@@ -139,7 +145,7 @@ Created by Edgar HIPP
           dir: false
         }
       };
-      this.zip.file(file.name, file.data, file.options);
+      this.zip.file(file.name, imageData, file.options);
       extension = imageName.replace(/[^.]+\.([^.]+)/, '$1');
       this.addExtensionRels("image/" + extension, extension);
       relationships = this.xmlDoc.getElementsByTagName("Relationships")[0];
@@ -149,7 +155,7 @@ Created by Edgar HIPP
       newTag.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
       newTag.setAttribute('Target', "media/" + imageName);
       relationships.appendChild(newTag);
-      this.zip.files["word/_rels/document.xml.rels"].data = DocUtils.encode_utf8(DocUtils.xml2Str(this.xmlDoc));
+      this.setFileData("word/_rels/document.xml.rels", DocUtils.encode_utf8(DocUtils.xml2Str(this.xmlDoc)));
       return this.maxRid;
     };
 
@@ -186,7 +192,7 @@ Created by Edgar HIPP
     };
 
     DocxGen.prototype.setImage = function(path, data) {
-      return this.zip.files[path].data = data;
+      return this.setFileData(path, data);
     };
 
     DocxGen.prototype.applyTemplateVars = function(templateVars, qrCodeCallback) {
@@ -208,8 +214,8 @@ Created by Edgar HIPP
         if (!(this.zip.files[fileName] != null)) {
           continue;
         }
-        currentFile = new DocXTemplater(this.zip.files[fileName].data, this, this.templateVars, this.intelligentTagging, [], {}, 0, qrCodeCallback, this.localImageCreator);
-        this.zip.files[fileName].data = currentFile.applyTemplateVars().content;
+        currentFile = new DocXTemplater(this.zip.files[fileName].asText(), this, this.templateVars, this.intelligentTagging, [], {}, 0, qrCodeCallback, this.localImageCreator);
+        this.setFileData(fileName, currentFile.applyTemplateVars().content);
         this.filesProcessed++;
       }
       return this.testReady();
@@ -247,7 +253,7 @@ Created by Edgar HIPP
         if (!(this.zip.files[fileName] != null)) {
           continue;
         }
-        currentFile = new DocXTemplater(this.zip.files[fileName].data, this, this.templateVars, this.intelligentTagging);
+        currentFile = new DocXTemplater(this.zip.files[fileName].asText(), this, this.templateVars, this.intelligentTagging);
         usedTemplateV = currentFile.applyTemplateVars().usedTemplateVars;
         n = 0;
         for (h in usedTemplateV) {
@@ -298,7 +304,7 @@ Created by Edgar HIPP
       zip = new JSZip();
       for (index in this.zip.files) {
         file = this.zip.files[index];
-        zip.file(file.name, file.data, file.options);
+        zip.file(file.name, file.asText(), file.options);
       }
       return this.zip = zip;
     };
@@ -312,7 +318,7 @@ Created by Edgar HIPP
         data = "";
       }
       if (data === "") {
-        currentFile = new DocXTemplater(this.zip.files[path].data, this, this.templateVars, this.intelligentTagging);
+        currentFile = new DocXTemplater(this.zip.files[path].asText(), this, this.templateVars, this.intelligentTagging);
       } else {
         currentFile = new DocXTemplater(data, this, this.templateVars, this.intelligentTagging);
       }
@@ -591,7 +597,14 @@ Created by Edgar HIPP
   };
 
   DocUtils.decode_utf8 = function(s) {
-    return decodeURIComponent(escape(s)).replace(new RegExp(String.fromCharCode(160), "g"), " ");
+    var a, error;
+    try {
+      a = decodeURIComponent(escape(s)).replace(new RegExp(String.fromCharCode(160), "g"), " ");
+    } catch (_error) {
+      error = _error;
+      debugger;
+    }
+    return a;
   };
 
   DocUtils.base64encode = function(b) {
@@ -682,9 +695,9 @@ Created by Edgar HIPP
                   this.xmlTemplater.DocxGen.qrCodeCallBack(this.xmlTemplater.DocxGen.qrCodeNumCallBack, true);
                   newId = this.xmlTemplater.DocxGen.addImageRels(imgName, "");
                   this.xmlTemplater.imageId++;
-                  this.xmlTemplater.DocxGen.setImage("word/media/" + imgName, oldFile.data);
+                  this.xmlTemplater.DocxGen.setImage("word/media/" + imgName, oldFile.asText());
                   if (env === 'browser') {
-                    qr[u] = new DocxQrCode(oldFile.data, this.xmlTemplater, imgName, this.xmlTemplater.DocxGen.qrCodeNumCallBack);
+                    qr[u] = new DocxQrCode(oldFile.asText(), this.xmlTemplater, imgName, this.xmlTemplater.DocxGen.qrCodeNumCallBack);
                   }
                   tag.setAttribute('name', "" + imgName);
                   tagrId.setAttribute('r:embed', "rId" + newId);
@@ -704,7 +717,7 @@ Created by Edgar HIPP
                       _results.push((function(imgName) {
                         var base64, binaryData, dat, finished, png;
                         console.log(oldFile.name);
-                        base64 = JSZipBase64.encode(oldFile.data);
+                        base64 = JSZip.base64.encode(oldFile.asText());
                         binaryData = new Buffer(base64, 'base64');
                         png = new PNG(binaryData);
                         finished = function(a) {
@@ -800,7 +813,7 @@ Created by Edgar HIPP
       this.num = num;
       this.callback = callback;
       this.data = imageData;
-      this.base64Data = JSZipBase64.encode(this.data);
+      this.base64Data = JSZip.base64.encode(this.data);
       this.ready = false;
       this.result = null;
     }

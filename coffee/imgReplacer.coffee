@@ -44,17 +44,17 @@ ImgReplacer = class ImgReplacer
 
 								imgName= ("Copie_"+@xmlTemplater.imageId+".png").replace(/\x20/,"")
 								@xmlTemplater.DocxGen.qrCodeNumCallBack++
-								
+
 								@xmlTemplater.DocxGen.qrCodeCallBack(@xmlTemplater.DocxGen.qrCodeNumCallBack,true)
 
 								newId= @xmlTemplater.DocxGen.addImageRels(imgName,"")
 								@xmlTemplater.imageId++
-								@xmlTemplater.DocxGen.setImage("word/media/#{imgName}",oldFile.data)
+								@xmlTemplater.DocxGen.setImage("word/media/#{imgName}",oldFile.asText())
 								# tag.setAttribute('id',@xmlTemplater.imageId)
 
 
 								if env=='browser'
-									qr[u]= new DocxQrCode(oldFile.data,@xmlTemplater,imgName,@xmlTemplater.DocxGen.qrCodeNumCallBack)
+									qr[u]= new DocxQrCode(oldFile.asText(),@xmlTemplater,imgName,@xmlTemplater.DocxGen.qrCodeNumCallBack)
 
 								tag.setAttribute('name',"#{imgName}")
 								tagrId.setAttribute('r:embed',"rId#{newId}")
@@ -73,17 +73,17 @@ ImgReplacer = class ImgReplacer
 								if env=='browser'
 									qr[u].decode(callback)
 								else
-									if /\.png$/.test(oldFile.name) 
+									if /\.png$/.test(oldFile.name)
 										do (imgName) =>
 											console.log(oldFile.name)
-											base64= JSZipBase64.encode oldFile.data
-											binaryData = new Buffer(base64, 'base64') 			
+											base64= JSZip.base64.encode oldFile.asText()
+											binaryData = new Buffer(base64, 'base64')
 											png= new PNG(binaryData)
 											finished= (a) =>
 												try
 													png.decoded= a
 													qr[u]= new DocxQrCode(png,@xmlTemplater,imgName,@xmlTemplater.DocxGen.qrCodeNumCallBack)
-													qr[u].decode(callback)											
+													qr[u].decode(callback)
 												catch e
 													console.log(e)
 													@xmlTemplater.DocxGen.qrCodeCallBack(@xmlTemplater.DocxGen.qrCodeNumCallBack,false)
@@ -94,7 +94,7 @@ ImgReplacer = class ImgReplacer
 
 
 			else if @xmlTemplater.currentScope["img"]? then if @xmlTemplater.currentScope["img"][u]?
-				
+
 				imgName= @xmlTemplater.currentScope["img"][u].name
 				imgData= @xmlTemplater.currentScope["img"][u].data
 				throw 'DocxGen not defined' unless @xmlTemplater.DocxGen?
