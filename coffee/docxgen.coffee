@@ -34,7 +34,6 @@ root.DocxGen = class DocxGen
 			@ready=true
 			@finishedCallback()
 	setFileData: (filePath,data) ->
-		console.log 'setting data for '+filePath+' //'+data
 		@zip.remove(filePath)
 		@zip.file(filePath,data)
 	logUndefined: (tag,scope)->

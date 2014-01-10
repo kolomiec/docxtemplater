@@ -34,7 +34,6 @@ root.DocxGen = class DocxGen
 			@ready=true
 			@finishedCallback()
 	setFileData: (filePath,data) ->
-		console.log 'setting data for '+filePath+' //'+data
 		@zip.remove(filePath)
 		@zip.file(filePath,data)
 	logUndefined: (tag,scope)->
@@ -359,7 +358,7 @@ DocUtils.encode_utf8 = (s)->
 
 DocUtils.decode_utf8= (s) ->
 	try
-		a=decodeURIComponent(escape(s)).replace(new RegExp(String.fromCharCode(160),"g")," ") #replace Ascii 160 space by the normal space, Ascii 32
+		a=decodeURIComponent(escape(s.replace(new RegExp(String.fromCharCode(160),"g")," "))) #replace Ascii 160 space by the normal space, Ascii 32
 	catch error
 		debugger
 	return a

@@ -71,7 +71,6 @@ Created by Edgar HIPP
     };
 
     DocxGen.prototype.setFileData = function(filePath, data) {
-      console.log('setting data for ' + filePath + ' //' + data);
       this.zip.remove(filePath);
       return this.zip.file(filePath, data);
     };
@@ -599,7 +598,7 @@ Created by Edgar HIPP
   DocUtils.decode_utf8 = function(s) {
     var a, error;
     try {
-      a = decodeURIComponent(escape(s)).replace(new RegExp(String.fromCharCode(160), "g"), " ");
+      a = decodeURIComponent(escape(s.replace(new RegExp(String.fromCharCode(160), "g"), " ")));
     } catch (_error) {
       error = _error;
       debugger;
