@@ -45,9 +45,11 @@ A simple Demo for replacing images can be found here: http://javascript-ninja.fr
 - jszip-load.js
 - jszip-inflate.js
 
-2. Optionally, if you want to be able to name the output files, you can use **Downloadify.js**, which is required to use method download. Be informed that it uses flash, this is why the method is not recommended. This method is howewer useful because a lot of browsers are limited for the download size with the Data-URI method.
+2. **docxgen.js** depends on underscore.js
 
-3. Optionnaly, if you want to replace images by images situated at a particular URL, you can use QR codes. For example If you store an image at http://website.com/image.png , you should encode the URL in QR-Code format. ![Qr Code Sample](http://qrfree.kaywa.com/?l=1&s=8&d=http%3A%2F%2Fwebsite.com%2Fimage.png "Qrcode Sample to http://website.com/image.png"). You can even use bracket tags in images. http://website.com/image.png?color={color} will take the *templateVars[color]* variable to make a dynamic URL. For this too work, you will need [jsqrcode](http://github.com/edi9999/jsqrcode "jsqrcode repositoty forked") and include the following files, in this order:
+3. Optionally, if you want to be able to name the output files, you can use **Downloadify.js**, which is required to use method download. Be informed that it uses flash, this is why the method is not recommended. This method is howewer useful because a lot of browsers are limited for the download size with the Data-URI method.
+
+4. Optionnaly, if you want to replace images by images situated at a particular URL, you can use QR codes. For example If you store an image at http://website.com/image.png , you should encode the URL in QR-Code format. ![Qr Code Sample](http://qrfree.kaywa.com/?l=1&s=8&d=http%3A%2F%2Fwebsite.com%2Fimage.png "Qrcode Sample to http://website.com/image.png"). You can even use bracket tags in images. http://website.com/image.png?color={color} will take the *templateVars[color]* variable to make a dynamic URL. For this too work, you will need [jsqrcode](http://github.com/edi9999/jsqrcode "jsqrcode repositoty forked") and include the following files, in this order:
 
     <script type="text/javascript" src="grid.js"></script>
     <script type="text/javascript" src="version.js"></script>

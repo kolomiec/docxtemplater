@@ -34,6 +34,9 @@
     ['jszip.js', 'jszip-load.js', 'jszip-deflate.js', 'jszip-inflate.js'].forEach(function(file) {
       return vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../libs/jszip/' + file), file);
     });
+    ['underscore.js'].forEach(function(file) {
+      return vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../libs/underscorejs/' + file), file);
+    });
     ['docxgen.js'].forEach(function(file) {
       return vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../js/' + file), file);
     });

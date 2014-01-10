@@ -26,6 +26,8 @@ if env=='node'
 		vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../libs/jsqrcode/' + file), file);
 	['jszip.js', 'jszip-load.js', 'jszip-deflate.js', 'jszip-inflate.js'].forEach (file) ->
 		vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../libs/jszip/' + file), file);
+	['underscore.js'].forEach (file) ->
+		vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../libs/underscorejs/' + file), file);
 	['docxgen.js'].forEach (file) ->
 		vm.runInThisContext(global.fs.readFileSync(__dirname + '/../../js/' + file), file);
 
