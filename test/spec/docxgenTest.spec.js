@@ -32,7 +32,7 @@
     DocUtils.pathConfig.node = __dirname + '/../../examples/';
   }
 
-  fileNames = ["imageExample.docx", "tagExample.docx", "tagExampleExpected.docx", "tagLoopExample.docx", "tagExampleExpected.docx", "tagLoopExampleImageExpected.docx", "tagProduitLoop.docx", "tagDashLoop.docx", "tagDashLoopList.docx", "tagDashLoopTable.docx", 'tagDashLoop.docx', 'qrCodeExample.docx', 'qrCodeExampleExpected.docx', 'qrCodeTaggingExample.docx', 'qrCodeTaggingExampleExpected.docx', 'qrCodeTaggingLoopExample.docx', 'qrCodeTaggingLoopExampleExpected.docx', 'tagIntelligentLoopTableExpected.docx', 'cyrillic.docx', 'tableComplex2Example.docx', 'tableComplexExample.docx', 'tableComplex3Example.docx', 'xmlInsertionExpected.docx', 'xmlInsertionExample.docx', "angularExample.docx", "xmlInsertionComplexExpected.docx", "xmlInsertionComplexExample.docx"];
+  fileNames = ["qrCodePngExample.docx", "imageExample.docx", "tagExample.docx", "tagExampleExpected.docx", "tagLoopExample.docx", "tagExampleExpected.docx", "tagLoopExampleImageExpected.docx", "tagProduitLoop.docx", "tagDashLoop.docx", "tagDashLoopList.docx", "tagDashLoopTable.docx", 'tagDashLoop.docx', 'qrCodeExample.docx', 'qrCodeExampleExpected.docx', 'qrCodeTaggingExample.docx', 'qrCodeTaggingExampleExpected.docx', 'qrCodeTaggingLoopExample.docx', 'qrCodeTaggingLoopExampleExpected.docx', 'tagIntelligentLoopTableExpected.docx', 'cyrillic.docx', 'tableComplex2Example.docx', 'tableComplexExample.docx', 'tableComplex3Example.docx', 'xmlInsertionExpected.docx', 'xmlInsertionExample.docx', "angularExample.docx", "xmlInsertionComplexExpected.docx", "xmlInsertionComplexExample.docx"];
 
   for (_i = 0, _len = fileNames.length; _i < _len; _i++) {
     name = fileNames[_i];
@@ -1341,7 +1341,7 @@
       expect(sub.fullText).toBe('start<w:table>Sample Table</w:table>end');
       return expect(sub.text).toBe('<w:table>Sample Table</w:table>');
     });
-    return it("shouldn't bug if some images don't contain a qrcode", function() {
+    it("shouldn't bug if some images don't contain a qrcode", function() {
       var endcallback;
       docX['imageExample.docx'] = new DocxGen(docX['imageExample.docx'].loadedContent, {}, {
         intelligentTagging: false,
@@ -1357,6 +1357,21 @@
       });
       return runs(function() {
         return expect(docX['imageExample.docx'].zip.files['word/media/Copie_0.png'].asBinary().length).toBe(713625);
+      });
+    });
+    return it("shouldn't bug if some png images don't contain a qrcode", function() {
+      docX['qrCodePngExample.docx'] = new DocxGen(docX['qrCodePngExample.docx'].loadedContent, {
+        image: "image"
+      }, {
+        intelligentTagging: false,
+        qrCode: true
+      });
+      docX['qrCodePngExample.docx'].applyTags();
+      waitsFor(function() {
+        return docX['qrCodePngExample.docx'].ready != null;
+      });
+      return runs(function() {
+        return expect(docX['qrCodePngExample.docx'].zip.files["word/media/Copie_1.png"].asBinary().length).toEqual(561513);
       });
     });
   });
